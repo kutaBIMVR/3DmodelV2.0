@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>自动加载 FBX - qiangti.FBX</title>
-    <!-- 引入 Three.js 核心库以及 FBXLoader 和轨道控制器 -->
+    <title>干挂石材节点构造 · 智能教学演示</title>
+    <!-- 引入Three.js核心库及附加组件 (使用稳定版本) -->
     <script type="importmap">
         {
             "imports": {
@@ -17,231 +17,752 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Microsoft YaHei', sans-serif;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
             overflow: hidden;
-            background-color: #111;
+            background-color: #0a0e14;
             color: white;
         }
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            padding: 15px 25px;
-            border-radius: 30px;
-            pointer-events: none;
-            backdrop-filter: blur(5px);
-            border-left: 5px solid #ffaa00;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            z-index: 100;
+
+        /* 主界面布局：左侧控制区 + 右侧模型区 */
+        #app {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            flex-direction: row;
         }
-        #status {
+
+        /* 右侧模型容器占据全窗口，左侧面板浮动在上层 */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 20% 30%, #1a1e2a, #0a0c12);
+        }
+
+        /* 左侧控制面板：半透明悬浮，不占用模型点击 */
+        #control-panel {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 300px;
+            background: rgba(10, 15, 25, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 24px 20px;
+            color: #fff;
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            z-index: 300;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            pointer-events: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #3a7ca5 #1e2632;
+        }
+
+        #control-panel::-webkit-scrollbar {
+            width: 5px;
+        }
+        #control-panel::-webkit-scrollbar-thumb {
+            background: #3a7ca5;
+            border-radius: 10px;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffd966;
+            border-bottom: 2px solid #3a7ca5;
+            padding-bottom: 12px;
+        }
+
+        .subtitle {
+            color: #b0d0ff;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 16px;
+            border-left: 5px solid #ffaa00;
+        }
+
+        /* 层次按钮组 */
+        .section-title {
+            font-size: 16px;
+            margin: 18px 0 8px 0;
+            color: #aaddff;
+            border-left: 4px solid #ffaa00;
+            padding-left: 10px;
+        }
+
+        .layer-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .layer-btn {
+            background: rgba(30, 40, 60, 0.9);
+            border: 1px solid #4a6c8f;
+            color: #eef5ff;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .layer-btn:hover {
+            background: #2a405c;
+            border-color: #ffaa00;
+            transform: translateY(-2px);
+        }
+
+        .layer-btn.active {
+            background: #ffaa00;
+            color: #1a1e2a;
+            border-color: #ffffff;
+            font-weight: bold;
+            box-shadow: 0 0 15px #ffaa00aa;
+        }
+
+        .btn-icon {
+            font-size: 16px;
+        }
+
+        /* 拆装控制组 */
+        .assembly-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            justify-content: space-between;
+        }
+
+        .action-btn {
+            background: #2e4b6a;
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            border-bottom: 3px solid #0e2a3b;
+        }
+
+        .action-btn:hover {
+            background: #3e6a8c;
+            border-bottom-color: #ffaa00;
+        }
+
+        /* 试题区 */
+        .quiz-area {
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            padding: 18px;
+            margin-top: 25px;
+            border: 1px solid #5f9ea0;
+        }
+
+        .question {
+            font-size: 15px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #ffe28c;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .option-item {
+            background: rgba(50,70,90,0.7);
+            padding: 10px 14px;
+            border-radius: 20px;
+            border: 1px solid #557799;
+            cursor: pointer;
+            transition: 0.1s;
+            font-size: 14px;
+        }
+
+        .option-item:hover {
+            background: #3e6885;
+            border-color: #ffaa00;
+        }
+
+        .option-item.selected {
+            background: #0a7e8c;
+            border: 2px solid #ffd966;
+        }
+
+        .feedback {
+            margin-top: 12px;
+            font-style: italic;
+            padding: 10px;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.5);
+            color: #cce6ff;
+            border-left: 6px solid #ffaa00;
+        }
+
+        /* 状态条 */
+        #status-bar {
             position: absolute;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(20,20,30,0.9);
-            padding: 15px 30px;
-            border-radius: 50px;
+            background: rgba(10, 20, 30, 0.85);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.3);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-            color: #0ff;
-            font-weight: 300;
-            border-bottom: 3px solid #0ff;
-            z-index: 200;
-            font-size: 16px;
-            letter-spacing: 2px;
+            padding: 14px 30px;
+            border-radius: 50px;
+            border: 1px solid #3a7ca5;
+            box-shadow: 0 0 25px #0055aa40;
+            color: #b8f2ff;
+            font-size: 15px;
+            z-index: 350;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 1px;
+            border-bottom: 4px solid #0ff;
         }
-        .hint {
+
+        #voice-hint {
             position: absolute;
             bottom: 120px;
-            left: 30px;
-            color: rgba(255,255,255,0.5);
+            right: 30px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 13px;
+            color: #ffcc99;
+            border: 1px solid #ffaa00;
+            z-index: 400;
+            pointer-events: none;
+        }
+
+        /* 右下方小提示 */
+        .hint-note {
+            position: absolute;
+            bottom: 130px;
+            left: 350px;
+            color: rgba(220,240,255,0.7);
             font-size: 12px;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 16px;
+            background: rgba(0,0,0,0.4);
+            padding: 6px 16px;
             border-radius: 20px;
             pointer-events: none;
+            border: 1px dashed #aaddff;
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        <h2>🏗️ 自动加载本地 FBX 模型</h2>
-        <p style="margin:0; opacity:0.9;">正在加载同目录下的 <strong style="color:#ffaa00;">qiangti.FBX</strong> 文件</p>
+    <div id="canvas-container">
+        <!-- Three.js画布将插入此处 -->
     </div>
 
-    <div id="status">⚙️ 状态: 准备加载模型...</div>
-    
-    <div class="hint">
-        🖱️ 鼠标拖拽旋转 | 滚轮缩放 | 右键平移 | 自动旋转中
+    <!-- 左侧浮动控制面板 -->
+    <div id="control-panel">
+        <h2>🧱 干挂石材节点 · 构造认知</h2>
+        <div class="subtitle">
+            📐 构件按Max命名匹配：基层墙体、预埋件、竖向龙骨、横向龙骨、保温层、石材挂件、石材面板、密封胶。<br>
+            🎯 点击层次高亮显示，其他半透明；再次点击取消。⭐ 点击按钮名即语音讲解。
+        </div>
+
+        <!-- 层次构造按钮区 (按节点类型顺序) -->
+        <div class="section-title">🔍 构造展示 (点击高亮/语音)</div>
+        <div id="layer-buttons-container" class="layer-buttons">
+            <!-- 动态注入JS生成，也可静态写好但为了映射颜色/名称动态生成更灵活。此处用JS填充，但先写静态占位；混合方式。 -->
+        </div>
+
+        <!-- 拆装控制区 -->
+        <div class="section-title">🧩 构造拆装</div>
+        <div class="assembly-group">
+            <button id="btn-split" class="action-btn"><span class="btn-icon">🔲</span> 拆分</button>
+            <button id="btn-assemble" class="action-btn"><span class="btn-icon">🔹</span> 一键组装</button>
+        </div>
+
+        <!-- 图文说明区：构造说明动态显示 -->
+        <div class="section-title">📘 图文说明</div>
+        <div id="construction-desc" style="background: #0e1a26; padding: 16px; border-radius: 16px; border-left: 8px solid #6b7c8b; margin-bottom: 5px;">
+            <strong style="color:#ffd966;">基层墙体</strong>：灰色，建筑结构基础。<br>
+            <span id="extra-desc">点击层次查看详细构造说明</span>
+        </div>
+
+        <!-- 试题考核区域 -->
+        <div class="quiz-area">
+            <div class="question">📌 试题：干挂石材节点中，主要承受荷载并将力传递到主体的关键连接构件是？</div>
+            <div id="options-container" class="options">
+                <div class="option-item" data-index="0">A. 石材面板</div>
+                <div class="option-item" data-index="1">B. 竖向龙骨</div>
+                <div class="option-item" data-index="2">C. 石材挂件</div>
+                <div class="option-item" data-index="3">D. 密封胶</div>
+            </div>
+            <div id="quiz-feedback" class="feedback">💡 请选择一个选项</div>
+        </div>
+        <p style="font-size: 12px; color: #aaa; text-align: right; margin-top: 8px;">语音讲解基于Web Speech API</p>
     </div>
+
+    <div id="status-bar">
+        <span id="status-icon">⚙️</span> <span id="status-text">模型加载中...</span>
+    </div>
+    <div id="voice-hint">🔊 点击层次按钮自动语音讲解</div>
+    <div class="hint-note">🖱️ 拖拽旋转 | 滚轮缩放 | 右键平移 | 自动旋转(可拖动后暂停)</div>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-        // --- 初始化场景、相机、渲染器 ---
+        // ---------- 1. 场景基础设置 ----------
+        const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111122);
+        scene.background = new THREE.Color(0x0a0e14); // 深灰蓝调
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(5, 5, 10);
-        camera.lookAt(0, 0, 0);
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(6, 4, 12);
+        camera.lookAt(0, 1, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
+        container.appendChild(renderer.domElement);
 
-        // --- 控制器 ---
+        // 控制器
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.screenSpacePanning = true;
-        controls.maxDistance = 500;
-        controls.minDistance = 0.1;
+        controls.dampingFactor = 0.06;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 1.5;
+        controls.autoRotateSpeed = 1.2;
         controls.enableZoom = true;
-        controls.target.set(0, 0, 0);
+        controls.enablePan = true;
+        controls.target.set(0, 1.2, 0);
+        controls.maxDistance = 300;
+        controls.minDistance = 2;
 
-        // --- 灯光系统 ---
-        const ambientLight = new THREE.AmbientLight(0x404060);
+        // 灯光系统
+        const ambientLight = new THREE.AmbientLight(0x404c63);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffeedd, 1);
-        dirLight.position.set(2, 5, 5);
-        dirLight.castShadow = true;
-        dirLight.receiveShadow = true;
-        dirLight.shadow.mapSize.width = 1024;
-        dirLight.shadow.mapSize.height = 1024;
-        scene.add(dirLight);
+        const mainLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+        mainLight.position.set(3, 5, 6);
+        mainLight.castShadow = true;
+        mainLight.receiveShadow = true;
+        mainLight.shadow.mapSize.width = 1024;
+        mainLight.shadow.mapSize.height = 1024;
+        scene.add(mainLight);
 
-        const backLight = new THREE.DirectionalLight(0xccddff, 0.5);
-        backLight.position.set(-5, 0, -5);
+        const fillLight = new THREE.DirectionalLight(0xcce0ff, 0.6);
+        fillLight.position.set(-4, 2, -5);
+        scene.add(fillLight);
+
+        const backLight = new THREE.PointLight(0x6688aa, 0.3);
+        backLight.position.set(0, 2, 10);
         scene.add(backLight);
 
-        const sideLight = new THREE.PointLight(0x88aaff, 0.3);
-        sideLight.position.set(0, 3, 10);
-        scene.add(sideLight);
-
-        // --- 辅助工具 ---
-        const gridHelper = new THREE.GridHelper(20, 20, 0x88aaff, 0x445566);
+        // 辅助元素：地面网格 + 轴线 (稍暗)
+        const gridHelper = new THREE.GridHelper(20, 20, 0x5a7a9a, 0x334455);
         scene.add(gridHelper);
-        
-        const axesHelper = new THREE.AxesHelper(5);
+        const axesHelper = new THREE.AxesHelper(8);
         scene.add(axesHelper);
 
-        // 存储当前模型
+        // 存储模型和节点分组
         let currentModel = null;
+        // 构件映射：key为中文名(对应Max命名关键词)，value为对象数组(mesh列表)
+        const layerMeshesMap = new Map();
+        // 预定义8个层次，与颜色建议对应，同时用于UI
+        const layerConfig = [
+            { name: '基层墙体', keyword: '基层_墙体', color: '#6b7c8b', emissive: '#2a3a4a' },
+            { name: '预埋件', keyword: '预埋件', color: '#cccccc', emissive: '#888888' },
+            { name: '竖向龙骨', keyword: '龙骨_竖向', color: '#9aa9b9', emissive: '#5f6f7f' },
+            { name: '横向龙骨', keyword: '龙骨_横向', color: '#9aa9b9', emissive: '#5f6f7f' },
+            { name: '保温层', keyword: '保温_挤塑板', color: '#3a7ca5', emissive: '#1e4a6a' },
+            { name: '石材挂件', keyword: '挂件', color: '#b0b0b0', emissive: '#7a7a7a' },
+            { name: '石材面板', keyword: '石材_面板', color: '#c0a080', emissive: '#8b6b4b' },
+            { name: '密封胶', keyword: '密封胶', color: '#505050', emissive: '#303030' }
+        ];
 
-        // --- 状态显示函数 ---
-        function setStatus(message, isError = false) {
-            const statusEl = document.getElementById('status');
-            statusEl.innerHTML = `⚙️ 状态: ${message}`;
-            statusEl.style.color = isError ? '#ff8888' : '#0ff';
-            statusEl.style.borderBottomColor = isError ? '#ff4444' : '#0ff';
+        // 存储原始材质以便恢复
+        const originalMaterials = new WeakMap();
+
+        // ---------- 状态更新UI ----------
+        function setStatus(msg, isError = false) {
+            const el = document.getElementById('status-text');
+            const icon = document.getElementById('status-icon');
+            if (el) el.innerText = msg;
+            if (icon) icon.innerText = isError ? '❌' : '⚙️';
+            const bar = document.getElementById('status-bar');
+            if (bar) {
+                bar.style.borderBottomColor = isError ? '#ff4444' : '#0ff';
+            }
         }
 
-        // --- 直接加载同目录下的 qiangti.FBX ---
-        setStatus('正在加载 qiangti.FBX...');
-        
-        const loader = new FBXLoader();
-     loader.load('https://kutabimvr.github.io/3DmodelV2.0/qiangti.FBX', 
-            (object) => {
-                // 成功回调
-                setStatus('✅ 成功加载: qiangti.FBX');
-                
-                // 移除之前的模型
-                if (currentModel) {
-                    scene.remove(currentModel);
-                    currentModel = null;
+        // ---------- 语音讲解 ----------
+        function speakLayerInfo(layerName) {
+            if (!window.speechSynthesis) {
+                console.warn('浏览器不支持语音');
+                return;
+            }
+            let detail = '';
+            const cfg = layerConfig.find(l => l.name === layerName);
+            switch(layerName) {
+                case '基层墙体': detail = '基层墙体，通常为混凝土或砌块，灰色，是骨架的承载基础。'; break;
+                case '预埋件': detail = '预埋件，金属制，提前埋设于墙体，用于连接龙骨。'; break;
+                case '竖向龙骨': detail = '竖向龙骨，主要受力构件，与预埋件固定。'; break;
+                case '横向龙骨': detail = '横向龙骨，水平支撑，增强稳定性。'; break;
+                case '保温层': detail = '保温层，挤塑板，蓝色，隔热节能。'; break;
+                case '石材挂件': detail = '石材挂件，不锈钢等金属，连接石材与龙骨。'; break;
+                case '石材面板': detail = '石材面板，花岗岩质感，装饰面层。'; break;
+                case '密封胶': detail = '密封胶，黑色，填缝防水。'; break;
+                default: detail = layerName;
+            }
+            const utterance = new SpeechSynthesisUtterance(`${layerName}：${detail}`);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            window.speechSynthesis.cancel(); // 避免重叠
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ---------- 更新图文说明区 ----------
+        function updateDescription(layerName) {
+            const descDiv = document.getElementById('extra-desc');
+            const titleStrong = document.querySelector('#construction-desc strong');
+            const cfg = layerConfig.find(l => l.name === layerName);
+            if (cfg) {
+                titleStrong.innerText = cfg.name;
+                titleStrong.style.color = '#ffd966';
+                let colorDesc = '';
+                switch(cfg.name) {
+                    case '基层墙体': colorDesc = '灰色 #6b7c8b'; break;
+                    case '预埋件': colorDesc = '金属色 #cccccc'; break;
+                    case '竖向龙骨': colorDesc = '银色 #9aa9b9'; break;
+                    case '横向龙骨': colorDesc = '银色 #9aa9b9'; break;
+                    case '保温层': colorDesc = '蓝色 #3a7ca5'; break;
+                    case '石材挂件': colorDesc = '金属色 #b0b0b0'; break;
+                    case '石材面板': colorDesc = '花岗岩色 #c0a080'; break;
+                    case '密封胶': colorDesc = '黑色 #505050'; break;
                 }
+                descDiv.innerHTML = `颜色建议：${colorDesc}<br>功能：${detailText(cfg.name)}`;
+            }
+        }
+
+        function detailText(name) {
+            const map = {
+                '基层墙体': '结构基底，承重及传力。',
+                '预埋件': '与墙体锚固，连接龙骨的金属件。',
+                '竖向龙骨': '垂直主龙骨，调节平整度，承受风荷载。',
+                '横向龙骨': '水平次龙骨，增加整体性。',
+                '保温层': '粘贴或锚固于墙体，保温隔热。',
+                '石材挂件': '可调挂件，固定石材板块。',
+                '石材面板': '装饰石材，通过挂件安装。',
+                '密封胶': '嵌缝材料，防水密封。'
+            };
+            return map[name] || '';
+        }
+
+        // ---------- 高亮/半透明逻辑 ----------
+        let currentActiveLayer = null;
+
+        function highlightLayer(layerName) {
+            // 先恢复所有材质为不半透明
+            resetAllOpacity();
+            
+            if (!layerName) return;
+            
+            const meshes = layerMeshesMap.get(layerName) || [];
+            if (meshes.length === 0) {
+                setStatus(`未找到: ${layerName}`, true);
+                return;
+            }
+
+            // 遍历所有构件：属于该layer的不透明，其他半透明
+            scene.traverse(obj => {
+                if (obj.isMesh) {
+                    // 检查是否在目标layer集合里
+                    const isTarget = meshes.includes(obj);
+                    if (!isTarget) {
+                        // 其他mesh设为半透明
+                        if (obj.material) {
+                            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                            mats.forEach(mat => {
+                                if (mat) {
+                                    mat.opacity = 0.2;
+                                    mat.transparent = true;
+                                }
+                            });
+                        }
+                    } else {
+                        // 目标mesh确保不透明
+                        if (obj.material) {
+                            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                            mats.forEach(mat => {
+                                if (mat) {
+                                    mat.opacity = 1.0;
+                                    mat.transparent = false;
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+            currentActiveLayer = layerName;
+            setStatus(`高亮: ${layerName}`);
+            updateDescription(layerName);
+        }
+
+        function resetAllOpacity() {
+            scene.traverse(obj => {
+                if (obj.isMesh && obj.material) {
+                    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                    mats.forEach(mat => {
+                        if (mat) {
+                            mat.opacity = 1.0;
+                            mat.transparent = false;
+                        }
+                    });
+                }
+            });
+            currentActiveLayer = null;
+        }
+
+        // ---------- 拆分/组装 (位移拆分) ----------
+        let isSplit = false;
+        const splitOffsets = {
+            '基层墙体': new THREE.Vector3(0,0,0),
+            '预埋件': new THREE.Vector3(0.6,0,0.3),
+            '竖向龙骨': new THREE.Vector3(0.9,0.2,-0.2),
+            '横向龙骨': new THREE.Vector3(1.2,0.5,0.1),
+            '保温层': new THREE.Vector3(0.3,0,-0.7),
+            '石材挂件': new THREE.Vector3(1.5,0.1,0.5),
+            '石材面板': new THREE.Vector3(2.0,0.3,0.8),
+            '密封胶': new THREE.Vector3(1.8,-0.2,1.2)
+        };
+
+        function applySplit(enable) {
+            if (!currentModel) return;
+            layerConfig.forEach(layer => {
+                const meshes = layerMeshesMap.get(layer.name) || [];
+                meshes.forEach(mesh => {
+                    if (enable) {
+                        // 保存原始位置
+                        if (mesh.userData.originalPos === undefined) {
+                            mesh.userData.originalPos = mesh.position.clone();
+                        }
+                        const offset = splitOffsets[layer.name] || new THREE.Vector3(0,0,0);
+                        mesh.position.copy(mesh.userData.originalPos.clone().add(offset));
+                    } else {
+                        if (mesh.userData.originalPos) {
+                            mesh.position.copy(mesh.userData.originalPos);
+                        }
+                    }
+                });
+            });
+            isSplit = enable;
+            setStatus(enable ? '拆分模式' : '组装复位');
+        }
+
+        // ---------- 加载FBX模型 ----------
+        setStatus('正在加载 qiangti.FBX ...');
+        const loader = new FBXLoader();
+        // 注意：使用您的在线路径
+        loader.load('https://kutabimvr.github.io/3DmodelV2.0/qiangti.FBX', 
+            (object) => {
+                setStatus('✅ 模型加载成功，正在解析构件...');
                 
-                // --- 自动缩放和居中处理 ---
-                // 计算模型尺寸并自动缩放以适应视图
+                if (currentModel) scene.remove(currentModel);
+                
+                // 预处理：缩放居中落地位移 (与之前逻辑保留)
                 const box = new THREE.Box3().setFromObject(object);
                 const size = box.getSize(new THREE.Vector3());
-                
-                // 确定缩放比例，使得最大尺寸为5左右
                 const maxDim = Math.max(size.x, size.y, size.z);
                 const scale = maxDim > 0 ? 5.0 / maxDim : 1;
                 object.scale.setScalar(scale);
                 
-                // 重新计算边界盒以获得缩放后的中心
                 const scaledBox = new THREE.Box3().setFromObject(object);
-                const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
-                
-                // 将模型置于原点中心
-                object.position.x -= scaledCenter.x;
-                object.position.y -= scaledCenter.y;
-                object.position.z -= scaledCenter.z;
+                const center = scaledBox.getCenter(new THREE.Vector3());
+                object.position.sub(center);
                 
                 // 抬升到网格平面
                 const updatedBox = new THREE.Box3().setFromObject(object);
                 const minY = updatedBox.min.y;
                 object.position.y += -minY;
-
-                // 遍历模型，启用阴影
+                
+                // 遍历，根据节点名称（中文）分类，并设置材质颜色（建议色）
                 object.traverse((child) => {
                     if (child.isMesh) {
                         child.castShadow = true;
                         child.receiveShadow = true;
+                        // 保存原始位置用于拆分
+                        child.userData.originalPos = child.position.clone();
                         
-                        // 调整材质效果
-                        if (child.material) {
-                            if (Array.isArray(child.material)) {
-                                child.material.forEach(mat => {
+                        // 根据命名匹配层级 (忽略大小写)
+                        const name = child.name;
+                        let matchedLayer = null;
+                        for (let layer of layerConfig) {
+                            // 匹配关键词: 比如基层_墙体, 预埋件, 龙骨_竖向 等
+                            if (name.includes(layer.keyword) || name.includes(layer.keyword.replace('_','')) || 
+                                (layer.name === '竖向龙骨' && (name.includes('竖向')||name.includes('龙骨_竖向'))) ||
+                                (layer.name === '横向龙骨' && (name.includes('横向')||name.includes('龙骨_横向'))) ) {
+                                matchedLayer = layer;
+                                break;
+                            }
+                        }
+                        // 若仍无匹配，尝试通过中文名模糊（由于命名含中文）
+                        if (!matchedLayer) {
+                            for (let layer of layerConfig) {
+                                if (name.includes(layer.name) || name.includes(layer.keyword)) {
+                                    matchedLayer = layer;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (matchedLayer) {
+                            // 存入map
+                            if (!layerMeshesMap.has(matchedLayer.name)) layerMeshesMap.set(matchedLayer.name, []);
+                            layerMeshesMap.get(matchedLayer.name).push(child);
+                            
+                            // 赋予建议颜色, 保留粗糙度金属感
+                            if (child.material) {
+                                const mats = Array.isArray(child.material) ? child.material : [child.material];
+                                mats.forEach(mat => {
                                     if (mat) {
-                                        if (mat.roughness !== undefined) mat.roughness = 0.6;
-                                        if (mat.metalness !== undefined) mat.metalness = 0.2;
+                                        const colorHex = matchedLayer.color;
+                                        mat.color = new THREE.Color(colorHex);
+                                        mat.emissive = new THREE.Color(matchedLayer.emissive || '#222222');
+                                        mat.emissiveIntensity = 0.1;
+                                        mat.roughness = 0.65;
+                                        mat.metalness = 0.2;
                                     }
                                 });
-                            } else {
-                                if (child.material.roughness !== undefined) child.material.roughness = 0.6;
-                                if (child.material.metalness !== undefined) child.material.metalness = 0.2;
                             }
+                        } else {
+                            // 未匹配的给个默认色
                         }
                     }
                 });
-                
+
                 scene.add(object);
                 currentModel = object;
                 
-                // 保持自动旋转
+                // 生成层次按钮
+                generateLayerButtons();
+                
+                // 重置半透明、拆分状态
+                resetAllOpacity();
+                if (isSplit) applySplit(true); // 如之前是拆分状态重新应用
+                setStatus('✅ 就绪 | 单击按钮高亮并语音');
                 controls.autoRotate = true;
             },
             (progress) => {
-                // 进度回调
                 if (progress.lengthComputable) {
                     const percent = Math.round((progress.loaded / progress.total) * 100);
-                    setStatus(`加载中: ${percent}%`);
+                    setStatus(`加载中 ${percent}%`);
                 }
             },
             (error) => {
-                // 错误回调
-                console.error('FBX加载错误:', error);
-                setStatus(`❌ 加载失败: 请确认 qiangti.FBX 文件在同级目录`, true);
-                
-                // 在控制台输出详细错误信息
-                console.error('详细错误:', error);
+                console.error('FBX加载错误', error);
+                setStatus('❌ 加载失败，请确认qiangti.FBX路径', true);
             }
         );
 
-        // --- 窗口大小自适应 ---
-        window.addEventListener('resize', onWindowResize, false);
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // ---------- 生成动态按钮 ----------
+        function generateLayerButtons() {
+            const container = document.getElementById('layer-buttons-container');
+            container.innerHTML = '';
+            layerConfig.forEach(layer => {
+                const btn = document.createElement('button');
+                btn.className = 'layer-btn';
+                btn.innerHTML = `<span class="btn-icon">🧱</span> ${layer.name}`;
+                btn.dataset.layer = layer.name;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // 语音讲解
+                    speakLayerInfo(layer.name);
+                    // 高亮处理：如果已经是高亮则取消高亮（重置），否则高亮
+                    if (currentActiveLayer === layer.name) {
+                        resetAllOpacity();
+                        updateDescription('基层墙体'); // 默认显示基层
+                    } else {
+                        highlightLayer(layer.name);
+                    }
+                    // 按钮激活样式切换
+                    document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+                    if (currentActiveLayer === layer.name) {
+                        // 取消激活状态 (reset后无高亮)
+                    } else {
+                        btn.classList.add('active');
+                    }
+                });
+                container.appendChild(btn);
+            });
         }
 
-        // --- 动画循环 ---
+        // 默认描述
+        updateDescription('基层墙体');
+
+        // ---------- 拆装按钮事件 ----------
+        document.getElementById('btn-split').addEventListener('click', () => {
+            applySplit(true);
+        });
+        document.getElementById('btn-assemble').addEventListener('click', () => {
+            applySplit(false);
+            resetAllOpacity();
+        });
+
+        // ---------- 试题交互 ----------
+        const options = document.querySelectorAll('.option-item');
+        let selectedIndex = null;
+        options.forEach((opt, idx) => {
+            opt.addEventListener('click', () => {
+                options.forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                selectedIndex = idx;
+                // 简单判断：石材挂件 (索引2)
+                const feedback = document.getElementById('quiz-feedback');
+                if (idx === 2) {
+                    feedback.innerHTML = '✅ 回答正确！石材挂件是连接石材与龙骨的关键受力构件。';
+                    feedback.style.borderLeftColor = '#4caf50';
+                } else {
+                    feedback.innerHTML = '❌ 再想想，挂件承担石材荷载并传递至龙骨。';
+                    feedback.style.borderLeftColor = '#ff5555';
+                }
+            });
+        });
+
+        // ---------- 自适应窗口 ----------
+        window.addEventListener('resize', () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+
+        // ---------- 动画循环 ----------
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
@@ -249,8 +770,8 @@
         }
         animate();
 
-        // 控制台提示
-        console.log('Three.js 自动加载 qiangti.FBX 查看器已启动');
+        // 初始化提示
+        setStatus('就绪');
     </script>
 </body>
 </html>
