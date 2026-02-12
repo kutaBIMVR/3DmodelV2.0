@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>外墙保温装饰构造 - 三维交互演示</title>
+    <!-- Three.js 核心库 -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #0a0e14;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 页面容器 */
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            background: linear-gradient(145deg, #0c101a 0%, #151e26 100%);
+            overflow-y: auto;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        /* 登录页 */
+        .login-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: #2a3846;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 30px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .app-title {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #aad0ff, #7aa5d9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .app-subtitle {
+            color: #9aaec2;
+            margin-bottom: 50px;
+            font-size: 16px;
+            letter-spacing: 4px;
+        }
+
+        .login-btn {
+            background: linear-gradient(145deg, #2e7eb0, #1e5a7a);
+            color: white;
+            border: none;
+            padding: 16px 50px;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 6px;
+            box-shadow: 0 8px 0 #0e2a3a, 0 10px 30px rgba(0,160,255,0.3);
+            transition: 0.1s;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+
+        .login-btn:active {
+            transform: translateY(8px);
+            box-shadow: 0 2px 0 #0e2a3a, 0 10px 30px rgba(0,160,255,0.3);
+        }
+
+        /* 扫码页 */
+        .scan-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+        }
+
+        .scan-header, .list-header, .node-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 0 20px;
+            color: white;
+        }
+
+        .back-btn {
+            font-size: 28px;
+            margin-right: 20px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+        }
+
+        .scan-title {
+            font-size: 22px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .scan-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 24px;
+            aspect-ratio: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid rgba(100,200,255,0.6);
+            margin: 30px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scan-line {
+            position: absolute;
+            width: 80%;
+            height: 2px;
+            background: #00f0ff;
+            animation: scan 2s linear infinite;
+            box-shadow: 0 0 20px #00f0ff;
+        }
+
+        @keyframes scan {
+            0% { top: 20%; }
+            50% { top: 80%; }
+            100% { top: 20%; }
+        }
+
+        .scan-icon {
+            font-size: 80px;
+            opacity: 0.8;
+        }
+
+        .scan-hint {
+            text-align: center;
+            color: #aaccff;
+            margin: 20px 0 40px;
+        }
+
+        .list-btn {
+            background: #2a4058;
+            padding: 16px;
+            border-radius: 30px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: auto;
+            cursor: pointer;
+            border: 1px solid #4a7a9a;
+        }
+
+        /* 列表页 */
+        .list-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+        }
+
+        .project-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 20px;
+            margin: 12px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .project-card:active {
+            background: rgba(80,160,255,0.2);
+            border-color: #40a0ff;
+        }
+
+        .project-name {
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .project-desc {
+            color: #9aabbc;
+            font-size: 14px;
+            margin-top: 8px;
+            padding-left: 30px;
+        }
+
+        .project-badge {
+            background: #2e5f8a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* 三维节点页 - 核心 */
+        .node-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background: #0c101a;
+            position: relative;
+        }
+
+        .node-header {
+            padding: 16px 20px;
+            background: rgba(10,20,30,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 20;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #canvas-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            background: #0a0e14;
+        }
+
+        /* 底部功能栏 */
+        .action-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 16px;
+            background: rgba(8,16,24,0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #2a4055;
+            z-index: 30;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: none;
+            border: none;
+            color: #9aabbc;
+            font-size: 12px;
+            padding: 8px 16px;
+            border-radius: 30px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .action-btn span {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .action-btn.active {
+            background: #1e3a5a;
+            color: white;
+            box-shadow: 0 0 15px #2e7eb0;
+        }
+
+        /* 右侧层次面板 */
+        .layers-panel {
+            position: absolute;
+            right: -280px;
+            top: 80px;
+            width: 260px;
+            background: rgba(10,20,30,0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px 0 0 20px;
+            padding: 20px;
+            border-left: 3px solid #3a8ac0;
+            transition: right 0.3s ease;
+            z-index: 100;
+            box-shadow: -10px 10px 30px rgba(0,0,0,0.5);
+            color: white;
+        }
+
+        .layers-panel.show {
+            right: 0;
+        }
+
+        .layer-item {
+            padding: 14px 16px;
+            margin: 8px 0;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .layer-item.active {
+            background: #2e5a7a;
+            border-color: #8ac4ff;
+            box-shadow: 0 0 15px #2e7eb0;
+        }
+
+        .layer-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .layer-info {
+            flex: 1;
+        }
+
+        .layer-name {
+            font-weight: bold;
+        }
+
+        /* 拆装面板 */
+        .split-panel {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10,20,30,0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px 24px;
+            border-radius: 50px;
+            display: none;
+            gap: 20px;
+            z-index: 150;
+            border: 1px solid #3a8ac0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+
+        .split-btn {
+            background: #2a4058;
+            border: none;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .split-btn:active {
+            background: #3a6a8a;
+            transform: scale(0.96);
+        }
+
+        .split-btn.reset {
+            background: #4a3a3a;
+        }
+
+        /* 测验面板 */
+        .quiz-panel {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            right: 20px;
+            background: rgba(10,20,30,0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 25px;
+            border: 2px solid #3a8ac0;
+            z-index: 200;
+            display: none;
+            color: white;
+            box-shadow: 0 15px 40px black;
+        }
+
+        .quiz-panel.show {
+            display: block;
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .quiz-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            cursor: pointer;
+        }
+
+        .quiz-question {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-option {
+            background: rgba(255,255,255,0.05);
+            padding: 14px 18px;
+            margin: 10px 0;
+            border-radius: 20px;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .quiz-option.selected {
+            background: #2e6a9a;
+            border-color: #aae0ff;
+            box-shadow: 0 0 20px #2e7eb0;
+        }
+
+        .quiz-submit {
+            background: #3a8ac0;
+            border: none;
+            color: white;
+            width: 100%;
+            padding: 16px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0 10px;
+            cursor: pointer;
+        }
+
+        #voiceHint {
+            position: absolute;
+            bottom: 160px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 40px;
+            border-left: 4px solid #3a8ac0;
+            font-size: 14px;
+            z-index: 80;
+            color: #b0e0ff;
+            pointer-events: none;
+        }
+
+        .layer-desc-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            padding: 16px 20px;
+            border-top: 4px solid #d49b6a;
+            z-index: 90;
+        }
+
+        #layerTitle {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #ffd966;
+        }
+
+        #layerDesc {
+            font-size: 14px;
+            color: #ddd;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页 -->
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <div class="logo">🏢</div>
+            <div class="app-title">智慧工地</div>
+            <div class="app-subtitle">BIM· 外墙节点</div>
+            <button id="loginBtn" class="login-btn">进入</button>
+        </div>
+    </div>
+
+    <!-- 扫码页 -->
+    <div id="scanPage" class="page">
+        <div class="scan-container">
+            <div class="scan-header">
+                <div class="back-btn">←</div>
+                <div class="scan-title">扫描构件码</div>
+            </div>
+            <div class="scan-box">
+                <div class="scan-line"></div>
+                <span class="scan-icon">📷</span>
+            </div>
+            <div class="scan-hint">将二维码放入框内，自动识别</div>
+            <button id="listBtnFromScan" class="list-btn">查看项目列表 →</button>
+        </div>
+    </div>
+
+    <!-- 列表页 -->
+    <div id="listPage" class="page">
+        <div class="list-container">
+            <div class="list-header">
+                <div id="backToScanFromList" class="back-btn">←</div>
+                <div class="scan-title">外墙保温项目</div>
+            </div>
+            <div style="margin: 10px 0 20px; color:#9aaec2;">共2个节点</div>
+            
+            <div id="wallCategory" class="project-card">
+                <div class="project-name">
+                    <span>🧱</span> 外墙保温装饰构造
+                    <span class="project-badge">标准节点</span>
+                </div>
+                <div class="project-desc">
+                    基层 · 保温 · 抹灰 · 饰面 | 四层构造
+                </div>
+            </div>
+
+            <div id="dryStoneNode" class="project-card">
+                <div class="project-name">
+                    <span>🪨</span> 干挂石材幕墙
+                    <span class="project-badge">幕墙节点</span>
+                </div>
+                <div class="project-desc">
+                    龙骨 · 保温 · 石材 | 空气层构造
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button id="goToListBtn" style="display: none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 三维节点页 -->
+    <div id="node3DPage" class="page">
+        <div class="node-container">
+            <div class="node-header">
+                <div style="display: flex; align-items: center;">
+                    <div id="backToListFromNode" class="back-btn" style="position: static; margin-right: 16px;">←</div>
+                    <div>
+                        <div style="font-weight: bold; font-size: 18px;">外墙保温装饰构造</div>
+                        <div style="font-size: 12px; color: #aad0ff;">三维交互 / 分层拆解</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 三维画布容器 -->
+            <div id="canvas-container"></div>
+
+            <!-- 层次描述面板 -->
+            <div class="layer-desc-panel">
+                <div id="layerTitle">🏗️ 外墙保温装饰构造</div>
+                <div id="layerDesc">基层墙体 · 保温层 · 抹灰层 · 饰面层</div>
+            </div>
+
+            <!-- 语音/提示 -->
+            <div id="voiceHint">🔊 点击层次面板查看详细构造</div>
+
+            <!-- 右侧层次面板 -->
+            <div id="layersPanel" class="layers-panel">
+                <h3 style="margin-bottom: 20px;">📐 构造层次</h3>
+                <div id="layerBase" class="layer-item active">
+                    <span class="layer-color" style="background: #6b7c8b;"></span>
+                    <div class="layer-info">
+                        <div class="layer-name">基层墙体</div>
+                        <div style="font-size: 12px; opacity: 0.7;">混凝土/砌体</div>
+                    </div>
+                    <span style="color: #8ac4ff;">▶</span>
+                </div>
+                <div id="layerInsul" class="layer-item">
+                    <span class="layer-color" style="background: #3a7ca5;"></span>
+                    <div class="layer-info">
+                        <div class="layer-name">保温层</div>
+                        <div style="font-size: 12px; opacity: 0.7;">XPS挤塑板</div>
+                    </div>
+                    <span style="color: #8ac4ff;">▶</span>
+                </div>
+                <div id="layerRender" class="layer-item">
+                    <span class="layer-color" style="background: #b8c2cc;"></span>
+                    <div class="layer-info">
+                        <div class="layer-name">抹灰层</div>
+                        <div style="font-size: 12px; opacity: 0.7;">抗裂砂浆</div>
+                    </div>
+                    <span style="color: #8ac4ff;">▶</span>
+                </div>
+                <div id="layerFinish" class="layer-item">
+                    <span class="layer-color" style="background: #d49b6a;"></span>
+                    <div class="layer-info">
+                        <div class="layer-name">饰面层</div>
+                        <div style="font-size: 12px; opacity: 0.7;">真石漆</div>
+                    </div>
+                    <span style="color: #8ac4ff;">▶</span>
+                </div>
+            </div>
+
+            <!-- 拆装面板 -->
+            <div id="splitPanel" class="split-panel">
+                <button id="btnSplit" class="split-btn">🔲 拆分</button>
+                <button id="btnAssemble" class="split-btn">⬛ 组合</button>
+                <button id="btnResetCamera" class="split-btn reset">🎥 复位</button>
+            </div>
+
+            <!-- 测验面板 -->
+            <div id="quizPanel" class="quiz-panel">
+                <div class="quiz-header">
+                    <span>📝 知识测验</span>
+                    <button id="closeQuiz" class="quiz-close">✕</button>
+                </div>
+                <div class="quiz-question">
+                    外墙保温构造中，起主要保温隔热作用的是？
+                </div>
+                <div id="quizOptions">
+                    <div class="quiz-option" data-idx="0">A. 基层墙体</div>
+                    <div class="quiz-option" data-idx="1">B. 保温层</div>
+                    <div class="quiz-option" data-idx="2">C. 抹灰层</div>
+                    <div class="quiz-option" data-idx="3">D. 饰面层</div>
+                </div>
+                <button id="submitQuiz" class="quiz-submit">提交答案</button>
+                <div id="quizResult" style="text-align: center; margin-top: 10px; min-height: 24px;"></div>
+            </div>
+
+            <!-- 底部功能栏 -->
+            <div class="action-bar">
+                <button id="btnDesc" class="action-btn active">
+                    <span>📋</span> 概述
+                </button>
+                <button id="btnShowLayers" class="action-btn">
+                    <span>📐</span> 层次
+                </button>
+                <button id="btnSplitAssemble" class="action-btn">
+                    <span>🔧</span> 拆装
+                </button>
+                <button id="btnQuiz" class="action-btn">
+                    <span>📝</span> 测验
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // ==================== 三维模型：外墙保温装饰构造 ====================
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- 页面路由 ---
+        const pages = {
+            login: document.getElementById('loginPage'),
+            scan: document.getElementById('scanPage'),
+            list: document.getElementById('listPage'),
+            node3d: document.getElementById('node3DPage')
+        };
+
+        function showPage(pageId) {
+            Object.values(pages).forEach(p => p.classList.remove('active'));
+            pages[pageId].classList.add('active');
+        }
+
+        // 登录
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => showPage('scan'));
+        }
+
+        // 扫码 -> 列表
+        const listBtnFromScan = document.getElementById('listBtnFromScan');
+        if (listBtnFromScan) listBtnFromScan.addEventListener('click', () => showPage('list'));
+        
+        const goToListBtn = document.getElementById('goToListBtn');
+        if (goToListBtn) goToListBtn.addEventListener('click', () => showPage('list'));
+        
+        const backToScanFromList = document.getElementById('backToScanFromList');
+        if (backToScanFromList) backToScanFromList.addEventListener('click', () => showPage('scan'));
+
+        // 列表 -> 三维节点
+        const wallCategory = document.getElementById('wallCategory');
+        const dryStoneNode = document.getElementById('dryStoneNode');
+        const backToListFromNode = document.getElementById('backToListFromNode');
+        
+        function enterNodePage() {
+            showPage('node3d');
+            initThree();
+        }
+        
+        if (wallCategory) wallCategory.addEventListener('click', enterNodePage);
+        if (dryStoneNode) dryStoneNode.addEventListener('click', enterNodePage);
+        if (backToListFromNode) backToListFromNode.addEventListener('click', () => showPage('list'));
+
+        // --- 三维场景初始化 ---
+        let threeInitialized = false;
+        let scene, camera, renderer, labelRenderer, controls, wallGroup;
+        let layers = [];
+        let baseMesh, insulMesh, renderMesh, finishMesh;
+        let origPositions = [];
+
+        function initThree() {
+            // 防止重复初始化
+            if (threeInitialized) {
+                const container = document.getElementById('canvas-container');
+                if (container.children.length === 0) {
+                    buildScene();
+                }
+                return;
+            }
+            buildScene();
+            threeInitialized = true;
+        }
+
+        function buildScene() {
+            const container = document.getElementById('canvas-container');
+            if (!container) {
+                console.error('找不到canvas-container');
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            // --- 场景 ---
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c101a);
+            
+            // --- 相机 ---
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(2.5, 1.6, 4.2);
+            camera.lookAt(0, 0.6, 0.3);
+            
+            // --- 渲染器 ---
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+            
+            // --- CSS2渲染器 ---
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(container.clientWidth, container.clientHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0';
+            labelRenderer.domElement.style.left = '0';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            container.appendChild(labelRenderer.domElement);
+            
+            // --- 控制器 ---
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.rotateSpeed = 0.5;
+            controls.zoomSpeed = 0.8;
+            controls.panSpeed = 0.5;
+            controls.target.set(0, 0.6, 0.3);
+            controls.enableZoom = true;
+            controls.enablePan = true;
+            
+            // --- 灯光 ---
+            const ambient = new THREE.AmbientLight(0x40506e);
+            scene.add(ambient);
+            
+            const mainLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+            mainLight.position.set(2, 3, 4);
+            mainLight.castShadow = true;
+            mainLight.receiveShadow = true;
+            scene.add(mainLight);
+            
+            const fillLight = new THREE.DirectionalLight(0xaad0ff, 0.6);
+            fillLight.position.set(-2, 1, -2);
+            scene.add(fillLight);
+            
+            // 辅助网格
+            const grid = new THREE.GridHelper(8, 20, 0x7a8caa, 0x445566);
+            grid.position.y = -0.05;
+            scene.add(grid);
+            
+            // --- 创建模型 ---
+            wallGroup = new THREE.Group();
+            
+            // 1. 基层墙体
+            const baseMat = new THREE.MeshStandardMaterial({ 
+                color: 0x6b7c8b, 
+                roughness: 0.7, 
+                emissive: new THREE.Color(0x1a1e2a), 
+                emissiveIntensity: 0.1 
+            });
+            const baseGeo = new THREE.BoxGeometry(2.4, 1.6, 0.2);
+            baseMesh = new THREE.Mesh(baseGeo, baseMat);
+            baseMesh.castShadow = true; 
+            baseMesh.receiveShadow = true;
+            baseMesh.position.set(0, 0.6, 0);
+            baseMesh.userData = { 
+                name: '基层墙体', 
+                desc: '混凝土或砌体基层，厚度200mm，承重及防火隔离。' 
+            };
+            wallGroup.add(baseMesh);
+            
+            // 2. 保温层
+            const insulMat = new THREE.MeshStandardMaterial({ 
+                color: 0x3a7ca5, 
+                roughness: 0.6, 
+                transparent: true, 
+                opacity: 0.85, 
+                emissive: new THREE.Color(0x102838) 
+            });
+            const insulGeo = new THREE.BoxGeometry(2.45, 1.65, 0.15);
+            insulMesh = new THREE.Mesh(insulGeo, insulMat);
+            insulMesh.castShadow = true; 
+            insulMesh.receiveShadow = true;
+            insulMesh.position.set(0, 0.6, 0.17);
+            insulMesh.userData = { 
+                name: '保温层', 
+                desc: '挤塑聚苯板(XPS)，厚度50mm，导热系数≤0.03，节能保温核心层。' 
+            };
+            wallGroup.add(insulMesh);
+            
+            // 3. 抹灰层
+            const renderMat = new THREE.MeshStandardMaterial({ 
+                color: 0xb8c2cc, 
+                roughness: 0.5, 
+                emissive: new THREE.Color(0x282e38) 
+            });
+            const renderGeo = new THREE.BoxGeometry(2.5, 1.7, 0.06);
+            renderMesh = new THREE.Mesh(renderGeo, renderMat);
+            renderMesh.castShadow = true; 
+            renderMesh.receiveShadow = true;
+            renderMesh.position.set(0, 0.6, 0.31);
+            renderMesh.userData = { 
+                name: '抹灰层', 
+                desc: '抗裂砂浆压入耐碱网格布，厚度5mm，防止开裂，增强防水。' 
+            };
+            wallGroup.add(renderMesh);
+            
+            // 4. 饰面层
+            const finishMat = new THREE.MeshStandardMaterial({ 
+                color: 0xd49b6a, 
+                roughness: 0.4, 
+                emissive: new THREE.Color(0x3a2a1a), 
+                emissiveIntensity: 0.1 
+            });
+            const finishGeo = new THREE.BoxGeometry(2.52, 1.72, 0.04);
+            finishMesh = new THREE.Mesh(finishGeo, finishMat);
+            finishMesh.castShadow = true; 
+            finishMesh.receiveShadow = true;
+            finishMesh.position.set(0, 0.6, 0.38);
+            finishMesh.userData = { 
+                name: '饰面层', 
+                desc: '真石漆/彩色饰面，耐候抗污，丰富建筑外观。' 
+            };
+            wallGroup.add(finishMesh);
+            
+            scene.add(wallGroup);
+            
+            // 收集所有层
+            layers = [baseMesh, insulMesh, renderMesh, finishMesh];
+            origPositions = layers.map(l => l.position.clone());
+            
+            // 添加标签
+            function createLabel(text, pos, color) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                div.style.background = '#0a0e1ae0';
+                div.style.color = 'white';
+                div.style.padding = '6px 16px';
+                div.style.borderRadius = '30px';
+                div.style.border = '2px solid ' + color;
+                div.style.fontSize = '14px';
+                div.style.fontWeight = 'bold';
+                div.style.backdropFilter = 'blur(4px)';
+                const label = new CSS2DObject(div);
+                label.position.copy(pos);
+                return label;
+            }
+            
+            scene.add(createLabel('基层', new THREE.Vector3(-1.0, 1.3, 0), '#8a9aad'));
+            scene.add(createLabel('保温层', new THREE.Vector3(0, 1.4, 0.17), '#3a7ca5'));
+            scene.add(createLabel('抹灰层', new THREE.Vector3(0.9, 1.4, 0.31), '#b8c2cc'));
+            scene.add(createLabel('饰面层', new THREE.Vector3(1.0, 1.4, 0.38), '#d49b6a'));
+            
+            // --- 初始化界面状态 ---
+            const layersPanel = document.getElementById('layersPanel');
+            const splitPanel = document.getElementById('splitPanel');
+            
+            if (layersPanel) layersPanel.classList.remove('show');
+            if (splitPanel) splitPanel.style.display = 'none';
+            
+            // --- 四大功能按钮交互 ---
+            const btnDesc = document.getElementById('btnDesc');
+            const btnShowLayers = document.getElementById('btnShowLayers');
+            const btnSplitAssemble = document.getElementById('btnSplitAssemble');
+            const btnQuiz = document.getElementById('btnQuiz');
+            
+            if (btnDesc) {
+                btnDesc.addEventListener('click', () => {
+                    setActiveAction('btnDesc');
+                    if (layersPanel) layersPanel.classList.remove('show');
+                    if (splitPanel) splitPanel.style.display = 'none';
+                    document.getElementById('quizPanel')?.classList.remove('show');
+                    resetLayerTransparency();
+                    document.getElementById('layerTitle').innerHTML = '🏗️ 外墙保温装饰构造';
+                    document.getElementById('layerDesc').innerHTML = '基层墙体 · 保温层 · 抹灰层 · 饰面层';
+                });
+            }
+            
+            if (btnShowLayers) {
+                btnShowLayers.addEventListener('click', () => {
+                    setActiveAction('btnShowLayers');
+                    if (layersPanel) {
+                        layersPanel.classList.add('show');
+                        splitPanel.style.display = 'none';
+                    }
+                    document.getElementById('quizPanel')?.classList.remove('show');
+                    setActiveLayer('base');
+                    setActiveLayerBtn('layerBase');
+                });
+            }
+            
+            if (btnSplitAssemble) {
+                btnSplitAssemble.addEventListener('click', () => {
+                    setActiveAction('btnSplitAssemble');
+                    if (splitPanel) {
+                        splitPanel.style.display = 'flex';
+                        layersPanel.classList.remove('show');
+                    }
+                    document.getElementById('quizPanel')?.classList.remove('show');
+                    resetLayerTransparency();
+                });
+            }
+            
+            if (btnQuiz) {
+                btnQuiz.addEventListener('click', () => {
+                    setActiveAction('btnQuiz');
+                    document.getElementById('quizPanel')?.classList.add('show');
+                    layersPanel.classList.remove('show');
+                    splitPanel.style.display = 'none';
+                });
+            }
+            
+            function setActiveAction(id) {
+                [btnDesc, btnShowLayers, btnSplitAssemble, btnQuiz].forEach(btn => {
+                    if (btn) btn.classList.remove('active');
+                });
+                const activeBtn = document.getElementById(id);
+                if (activeBtn) activeBtn.classList.add('active');
+            }
+            
+            // --- 层次按钮事件 ---
+            const layerBase = document.getElementById('layerBase');
+            const layerInsul = document.getElementById('layerInsul');
+            const layerRender = document.getElementById('layerRender');
+            const layerFinish = document.getElementById('layerFinish');
+            
+            if (layerBase) {
+                layerBase.addEventListener('click', () => {
+                    setActiveLayer('base');
+                    setActiveLayerBtn('layerBase');
+                    document.getElementById('voiceHint').innerHTML = '🔊 语音讲解：基层墙体，承重结构，防火隔离层';
+                });
+            }
+            
+            if (layerInsul) {
+                layerInsul.addEventListener('click', () => {
+                    setActiveLayer('insul');
+                    setActiveLayerBtn('layerInsul');
+                    document.getElementById('voiceHint').innerHTML = '🔊 语音讲解：保温层，XPS挤塑板，导热系数≤0.03';
+                });
+            }
+            
+            if (layerRender) {
+                layerRender.addEventListener('click', () => {
+                    setActiveLayer('render');
+                    setActiveLayerBtn('layerRender');
+                    document.getElementById('voiceHint').innerHTML = '🔊 语音讲解：抹灰层，抗裂砂浆，耐碱网格布';
+                });
+            }
+            
+            if (layerFinish) {
+                layerFinish.addEventListener('click', () => {
+                    setActiveLayer('finish');
+                    setActiveLayerBtn('layerFinish');
+                    document.getElementById('voiceHint').innerHTML = '🔊 语音讲解：饰面层，真石漆，耐候抗污';
+                });
+            }
+            
+            function setActiveLayerBtn(id) {
+                ['layerBase','layerInsul','layerRender','layerFinish'].forEach(i => {
+                    const btn = document.getElementById(i);
+                    if (btn) btn.classList.remove('active');
+                });
+                const activeBtn = document.getElementById(id);
+                if (activeBtn) activeBtn.classList.add('active');
+            }
+            
+            // 半透明逻辑
+            function setActiveLayer(layerName) {
+                resetLayerTransparency();
+                if (layerName === 'base') {
+                    if (baseMesh) baseMesh.material.emissive.setHex(0x333333);
+                    [insulMesh, renderMesh, finishMesh].forEach(l => { 
+                        if (l) {
+                            l.material.transparent = true; 
+                            l.material.opacity = 0.25;
+                        }
+                    });
+                    document.getElementById('layerTitle').innerHTML = '🧱 基层墙体';
+                    document.getElementById('layerDesc').innerHTML = baseMesh?.userData.desc || '';
+                } else if (layerName === 'insul') {
+                    if (insulMesh) insulMesh.material.emissive.setHex(0x333333);
+                    [baseMesh, renderMesh, finishMesh].forEach(l => { 
+                        if (l) {
+                            l.material.transparent = true; 
+                            l.material.opacity = 0.25;
+                        }
+                    });
+                    document.getElementById('layerTitle').innerHTML = '🟫 保温层';
+                    document.getElementById('layerDesc').innerHTML = insulMesh?.userData.desc || '';
+                } else if (layerName === 'render') {
+                    if (renderMesh) renderMesh.material.emissive.setHex(0x333333);
+                    [baseMesh, insulMesh, finishMesh].forEach(l => { 
+                        if (l) {
+                            l.material.transparent = true; 
+                            l.material.opacity = 0.25;
+                        }
+                    });
+                    document.getElementById('layerTitle').innerHTML = '⚪ 抹灰层';
+                    document.getElementById('layerDesc').innerHTML = renderMesh?.userData.desc || '';
+                } else if (layerName === 'finish') {
+                    if (finishMesh) finishMesh.material.emissive.setHex(0x333333);
+                    [baseMesh, insulMesh, renderMesh].forEach(l => { 
+                        if (l) {
+                            l.material.transparent = true; 
+                            l.material.opacity = 0.25;
+                        }
+                    });
+                    document.getElementById('layerTitle').innerHTML = '🎨 饰面层';
+                    document.getElementById('layerDesc').innerHTML = finishMesh?.userData.desc || '';
+                }
+            }
+            
+            function resetLayerTransparency() {
+                layers.forEach(l => { 
+                    if (l) {
+                        l.material.transparent = false; 
+                        l.material.opacity = 1;
+                        l.material.emissive.setHex(0x000000);
+                    }
+                });
+            }
+            
+            // --- 拆装功能 ---
+            const btnSplit = document.getElementById('btnSplit');
+            const btnAssemble = document.getElementById('btnAssemble');
+            const btnResetCamera = document.getElementById('btnResetCamera');
+            
+            if (btnSplit) {
+                btnSplit.addEventListener('click', () => {
+                    if (baseMesh) baseMesh.position.z = origPositions[0]?.z || 0;
+                    if (insulMesh) insulMesh.position.z = (origPositions[1]?.z || 0) + 0.4;
+                    if (renderMesh) renderMesh.position.z = (origPositions[2]?.z || 0) + 0.8;
+                    if (finishMesh) finishMesh.position.z = (origPositions[3]?.z || 0) + 1.2;
+                });
+            }
+            
+            if (btnAssemble) {
+                btnAssemble.addEventListener('click', () => {
+                    layers.forEach((l, idx) => {
+                        if (l && origPositions[idx]) l.position.copy(origPositions[idx]);
+                    });
+                });
+            }
+            
+            if (btnResetCamera) {
+                btnResetCamera.addEventListener('click', () => {
+                    if (camera) camera.position.set(2.5, 1.6, 4.2);
+                    if (controls) controls.target.set(0, 0.6, 0.3);
+                    if (controls) controls.update();
+                });
+            }
+            
+            // 默认激活基层
+            setActiveLayer('base');
+            setActiveLayerBtn('layerBase');
+            
+            // 动画循环
+            function animate() {
+                requestAnimationFrame(animate);
+                if (controls) controls.update();
+                if (renderer && scene && camera) renderer.render(scene, camera);
+                if (labelRenderer && scene && camera) labelRenderer.render(scene, camera);
+            }
+            animate();
+            
+            // 窗口自适应
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                if (camera) {
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+                }
+                if (renderer) renderer.setSize(w, h);
+                if (labelRenderer) labelRenderer.setSize(w, h);
+            });
+        }
+
+        // --- 测验逻辑 ---
+        const closeQuiz = document.getElementById('closeQuiz');
+        if (closeQuiz) {
+            closeQuiz.addEventListener('click', () => {
+                document.getElementById('quizPanel').classList.remove('show');
+            });
+        }
+        
+        const opts = document.querySelectorAll('#quizOptions .quiz-option');
+        let selectedIdx = null;
+        
+        opts.forEach(opt => {
+            opt.addEventListener('click', function() {
+                opts.forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedIdx = parseInt(this.dataset.idx);
+            });
+        });
+        
+        const submitQuiz = document.getElementById('submitQuiz');
+        if (submitQuiz) {
+            submitQuiz.addEventListener('click', () => {
+                const res = document.getElementById('quizResult');
+                if (res) {
+                    if (selectedIdx === 1) {
+                        res.innerHTML = '✅ 回答正确！保温层起主要保温隔热作用。';
+                        res.style.color = '#88ff88';
+                    } else {
+                        res.innerHTML = '❌ 错误。正确答案是B，保温层。';
+                        res.style.color = '#ff8888';
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
