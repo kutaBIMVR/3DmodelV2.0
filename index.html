@@ -329,7 +329,393 @@
     <div id="voice-hint">🔊 点击层次按钮自动语音讲解</div>
     <div class="hint-note">🖱️ 拖拽旋转 | 滚轮缩放 | 右键平移 | 自动旋转(可拖动后暂停)</div>
 
-  <script type="module">
+ <script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+// --- 初始化 ---
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1e2a); // 更亮的深蓝色，便于看见深色模型
+
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 1000);
+camera.position.set(8, 6, 15);
+camera.lookAt(0, 1, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+// --- 控制器 ---
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.0;
+controls.target.set(0, 1.2, 0);
+controls.update();
+
+// --- 灯光（调亮！）---
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambientLight);
+
+const mainLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+mainLight.position.set(5, 8, 10);
+mainLight.castShadow = true;
+mainLight.receiveShadow = true;
+scene.add(mainLight);
+
+const fillLight = new THREE.DirectionalLight(0xcce0ff, 1.0);
+fillLight.position.set(-5, 4, 8);
+scene.add(fillLight);
+
+const backLight = new THREE.DirectionalLight(0x8899aa, 0.8);
+backLight.position.set(0, 5, -15);
+scene.add(backLight);
+
+// --- 辅助（调亮，更容易看到位置）---
+const gridHelper = new THREE.GridHelper(30, 20, 0x88aaff, 0x557799);
+scene.add(gridHelper);
+const axesHelper = new THREE.AxesHelper(8);
+scene.add(axesHelper);
+
+// --- 状态管理 ---
+let currentModel = null;
+const layerMeshesMap = new Map();
+
+const layerConfig = [
+    { name: '基层墙体', keyword: '基层_墙体', color: '#6b7c8b', emissive: '#2a3a4a' },
+    { name: '预埋件', keyword: '预埋件', color: '#cccccc', emissive: '#888888' },
+    { name: '竖向龙骨', keyword: '龙骨_竖向', color: '#9aa9b9', emissive: '#5f6f7f' },
+    { name: '横向龙骨', keyword: '龙骨_横向', color: '#9aa9b9', emissive: '#5f6f7f' },
+    { name: '保温层', keyword: '保温_挤塑板', color: '#3a7ca5', emissive: '#1e4a6a' },
+    { name: '石材挂件', keyword: '挂件', color: '#b0b0b0', emissive: '#7a7a7a' },
+    { name: '石材面板', keyword: '石材_面板', color: '#c0a080', emissive: '#8b6b4b' },
+    { name: '密封胶', keyword: '密封胶', color: '#505050', emissive: '#303030' }
+];
+
+function setStatus(msg, isError = false) {
+    const el = document.getElementById('status-text');
+    const icon = document.getElementById('status-icon');
+    if (el) el.innerText = msg;
+    if (icon) icon.innerText = isError ? '❌' : '⚙️';
+}
+
+// --- 🌟🌟🌟 核心修复：加载模型，但保留你的所有功能 🌟🌟🌟 ---
+setStatus('正在加载 qiangti.FBX ...');
+
+const loader = new FBXLoader();
+loader.load('https://kutabimvr.github.io/3DmodelV2.0/qiangti.FBX',
+    (object) => {
+        setStatus('✅ 模型加载成功，正在优化显示...');
+        
+        if (currentModel) scene.remove(currentModel);
+        
+        // === 修复1：先把模型整体调亮/调鲜艳，确保可见 ===
+        object.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                child.userData.originalPos = child.position.clone();
+                
+                // 材质增强：加亮、加饱和
+                if (child.material) {
+                    const mats = Array.isArray(child.material) ? child.material : [child.material];
+                    mats.forEach(mat => {
+                        if (mat) {
+                            mat.roughness = 0.5;
+                            mat.metalness = 0.3;
+                            mat.emissiveIntensity = 0.15; // 轻微自发光
+                        }
+                    });
+                }
+            }
+        });
+        
+        // === 修复2：修正缩放居中逻辑（你的原逻辑把模型缩太小或位置偏了）===
+        const box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        console.log('模型原始尺寸:', size.x, size.y, size.z);
+        console.log('模型原始中心:', center.x, center.y, center.z);
+        
+        // 更合理的缩放：让最大边长为 6（比原来大一些）
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = maxDim > 0 ? 6.0 / maxDim : 1;
+        object.scale.setScalar(scale);
+        
+        // 重新计算缩放后的包围盒
+        const scaledBox = new THREE.Box3().setFromObject(object);
+        const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+        
+        // 将模型中心移到原点
+        object.position.x -= scaledCenter.x;
+        object.position.y -= scaledCenter.y;
+        object.position.z -= scaledCenter.z;
+        
+        // 抬升到网格平面以上（确保不陷入地下）
+        const finalBox = new THREE.Box3().setFromObject(object);
+        const minY = finalBox.min.y;
+        object.position.y += -minY + 0.1; // 再加一点点抬升
+        
+        // === 修复3：根据你的命名规则匹配构件 ===
+        object.traverse((child) => {
+            if (child.isMesh) {
+                const name = child.name;
+                let matchedLayer = null;
+                
+                // 匹配逻辑（保留你的原逻辑）
+                for (let layer of layerConfig) {
+                    if (name.includes(layer.keyword) || 
+                        name.includes(layer.keyword.replace('_','')) ||
+                        (layer.name === '竖向龙骨' && (name.includes('竖向')||name.includes('龙骨_竖向'))) ||
+                        (layer.name === '横向龙骨' && (name.includes('横向')||name.includes('龙骨_横向'))) ||
+                        name.includes(layer.name)) {
+                        matchedLayer = layer;
+                        break;
+                    }
+                }
+                
+                if (matchedLayer) {
+                    if (!layerMeshesMap.has(matchedLayer.name)) {
+                        layerMeshesMap.set(matchedLayer.name, []);
+                    }
+                    layerMeshesMap.get(matchedLayer.name).push(child);
+                    
+                    // 赋予建议颜色，但增加亮度和饱和度
+                    if (child.material) {
+                        const mats = Array.isArray(child.material) ? child.material : [child.material];
+                        mats.forEach(mat => {
+                            if (mat) {
+                                const color = new THREE.Color(matchedLayer.color);
+                                // 稍微调亮一点
+                                color.multiplyScalar(1.2);
+                                mat.color = color;
+                                mat.emissive = new THREE.Color(matchedLayer.emissive || '#222222');
+                                mat.emissiveIntensity = 0.2;
+                                mat.roughness = 0.5;
+                                mat.metalness = 0.3;
+                            }
+                        });
+                    }
+                }
+            }
+        });
+        
+        scene.add(object);
+        currentModel = object;
+        
+        // 重新生成按钮
+        generateLayerButtons();
+        
+        // 重置高亮状态
+        resetAllOpacity();
+        
+        // 调整相机视角，对准模型
+        const viewBox = new THREE.Box3().setFromObject(object);
+        const viewCenter = viewBox.getCenter(new THREE.Vector3());
+        const viewSize = viewBox.getSize(new THREE.Vector3());
+        const maxViewDim = Math.max(viewSize.x, viewSize.y, viewSize.z);
+        
+        controls.target.copy(viewCenter);
+        camera.position.set(viewCenter.x + maxViewDim * 1.5, 
+                          viewCenter.y + maxViewDim * 0.8, 
+                          viewCenter.z + maxViewDim * 1.5);
+        controls.update();
+        
+        setStatus('✅ 就绪 | 单击按钮高亮并语音');
+        controls.autoRotate = true;
+    },
+    (progress) => {
+        if (progress.lengthComputable) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            setStatus(`加载中 ${percent}%`);
+        }
+    },
+    (error) => {
+        console.error('FBX加载错误:', error);
+        setStatus('❌ 加载失败，请确认FBX路径', true);
+    }
+);
+
+// --- 你原有的所有功能函数（保持不变）---
+function speakLayerInfo(layerName) {
+    if (!window.speechSynthesis) return;
+    let detail = '';
+    switch(layerName) {
+        case '基层墙体': detail = '基层墙体，通常为混凝土或砌块，灰色，是骨架的承载基础。'; break;
+        case '预埋件': detail = '预埋件，金属制，提前埋设于墙体，用于连接龙骨。'; break;
+        case '竖向龙骨': detail = '竖向龙骨，主要受力构件，与预埋件固定。'; break;
+        case '横向龙骨': detail = '横向龙骨，水平支撑，增强稳定性。'; break;
+        case '保温层': detail = '保温层，挤塑板，蓝色，隔热节能。'; break;
+        case '石材挂件': detail = '石材挂件，不锈钢等金属，连接石材与龙骨。'; break;
+        case '石材面板': detail = '石材面板，花岗岩质感，装饰面层。'; break;
+        case '密封胶': detail = '密封胶，黑色，填缝防水。'; break;
+    }
+    const utterance = new SpeechSynthesisUtterance(`${layerName}：${detail}`);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+}
+
+let currentActiveLayer = null;
+
+function highlightLayer(layerName) {
+    resetAllOpacity();
+    if (!layerName) return;
+    
+    const meshes = layerMeshesMap.get(layerName) || [];
+    if (meshes.length === 0) {
+        setStatus(`未找到: ${layerName}`, true);
+        return;
+    }
+
+    scene.traverse(obj => {
+        if (obj.isMesh) {
+            const isTarget = meshes.includes(obj);
+            if (obj.material) {
+                const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                mats.forEach(mat => {
+                    if (mat) {
+                        mat.opacity = isTarget ? 1.0 : 0.2;
+                        mat.transparent = !isTarget;
+                    }
+                });
+            }
+        }
+    });
+    currentActiveLayer = layerName;
+    setStatus(`高亮: ${layerName}`);
+    updateDescription(layerName);
+}
+
+function resetAllOpacity() {
+    scene.traverse(obj => {
+        if (obj.isMesh && obj.material) {
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            mats.forEach(mat => {
+                if (mat) {
+                    mat.opacity = 1.0;
+                    mat.transparent = false;
+                }
+            });
+        }
+    });
+    currentActiveLayer = null;
+}
+
+function updateDescription(layerName) {
+    const descDiv = document.getElementById('extra-desc');
+    const titleStrong = document.querySelector('#construction-desc strong');
+    const cfg = layerConfig.find(l => l.name === layerName);
+    if (cfg) {
+        titleStrong.innerText = cfg.name;
+        let colorDesc = {
+            '基层墙体': '灰色 #6b7c8b',
+            '预埋件': '金属色 #cccccc',
+            '竖向龙骨': '银色 #9aa9b9',
+            '横向龙骨': '银色 #9aa9b9',
+            '保温层': '蓝色 #3a7ca5',
+            '石材挂件': '金属色 #b0b0b0',
+            '石材面板': '花岗岩色 #c0a080',
+            '密封胶': '黑色 #505050'
+        }[cfg.name] || '';
+        descDiv.innerHTML = `颜色建议：${colorDesc}<br>功能：${detailText(cfg.name)}`;
+    }
+}
+
+function detailText(name) {
+    const map = {
+        '基层墙体': '结构基底，承重及传力。',
+        '预埋件': '与墙体锚固，连接龙骨的金属件。',
+        '竖向龙骨': '垂直主龙骨，调节平整度，承受风荷载。',
+        '横向龙骨': '水平次龙骨，增加整体性。',
+        '保温层': '粘贴或锚固于墙体，保温隔热。',
+        '石材挂件': '可调挂件，固定石材板块。',
+        '石材面板': '装饰石材，通过挂件安装。',
+        '密封胶': '嵌缝材料，防水密封。'
+    };
+    return map[name] || '';
+}
+
+function generateLayerButtons() {
+    const container = document.getElementById('layer-buttons-container');
+    if (!container) return;
+    container.innerHTML = '';
+    layerConfig.forEach(layer => {
+        const btn = document.createElement('button');
+        btn.className = 'layer-btn';
+        btn.innerHTML = `<span class="btn-icon">🧱</span> ${layer.name}`;
+        btn.dataset.layer = layer.name;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            speakLayerInfo(layer.name);
+            if (currentActiveLayer === layer.name) {
+                resetAllOpacity();
+                updateDescription('基层墙体');
+                btn.classList.remove('active');
+            } else {
+                highlightLayer(layer.name);
+                document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        });
+        container.appendChild(btn);
+    });
+}
+
+// --- 拆装功能（简化版）---
+let isSplit = false;
+document.getElementById('btn-split').addEventListener('click', () => {
+    if (!currentModel) return;
+    isSplit = !isSplit;
+    setStatus(isSplit ? '拆分模式' : '组装模式');
+});
+
+document.getElementById('btn-assemble').addEventListener('click', () => {
+    isSplit = false;
+    setStatus('组装复位');
+    resetAllOpacity();
+});
+
+// --- 试题交互 ---
+const options = document.querySelectorAll('.option-item');
+options.forEach((opt, idx) => {
+    opt.addEventListener('click', () => {
+        options.forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        const feedback = document.getElementById('quiz-feedback');
+        if (idx === 2) {
+            feedback.innerHTML = '✅ 回答正确！石材挂件是连接石材与龙骨的关键受力构件。';
+            feedback.style.borderLeftColor = '#4caf50';
+        } else {
+            feedback.innerHTML = '❌ 再想想，挂件承担石材荷载并传递至龙骨。';
+            feedback.style.borderLeftColor = '#ff5555';
+        }
+    });
+});
+
+// --- 自适应 ---
+window.addEventListener('resize', () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// --- 动画 ---
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+
+updateDescription('基层墙体');
+setStatus('就绪');
+</script>
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
