@@ -475,12 +475,12 @@
         
         // 拆分偏移量（仅用于演示，不干扰原始位置）
         const splitOffsets = {
-            '基层墙体': new THREE.Vector3(0, 0, 0),
-            '预埋件': new THREE.Vector3(0.7, 0.1, 0.4),
-            '竖向龙骨': new THREE.Vector3(1.1, 0.2, -0.3),
-            '横向龙骨': new THREE.Vector3(1.4, 0.6, 0.2),
-            '保温层': new THREE.Vector3(0.4, 0.1, -0.9),
-            '石材挂件': new THREE.Vector3(1.8, 0.2, 0.6),
+            'a1': new THREE.Vector3(0, 0, 0),
+            'b1': new THREE.Vector3(0.7, 0.1, 0.4),
+            'b2': new THREE.Vector3(1.1, 0.2, -0.3),
+            'c1': new THREE.Vector3(1.4, 0.6, 0.2),
+            'c2': new THREE.Vector3(0.4, 0.1, -0.9),
+            'c3': new THREE.Vector3(1.8, 0.2, 0.6),
         };
         
         // ---------- 7. 工具函数：更新状态栏 ----------
@@ -502,12 +502,12 @@
             }
             let detail = '';
             switch(layerName) {
-                case 'c1': detail = '这是C1。'; break;
-                case '预埋件': detail = '预埋件，金属制，提前埋设于墙体，用于连接龙骨。'; break;
-                case '竖向龙骨': detail = '竖向龙骨，主要受力构件，与预埋件固定。'; break;
-                case '横向龙骨': detail = '横向龙骨，水平支撑，增强稳定性。'; break;
-                case '保温层': detail = '保温层，挤塑板，蓝色，隔热节能。'; break;
-                case '石材挂件': detail = '石材挂件，不锈钢等金属，连接石材与龙骨。'; break;
+                case 'a1': detail = '这是a1。'; break;
+                case 'b1': detail = '预埋件，金属制，提前埋设于墙体，用于连接龙骨。'; break;
+                case 'b2': detail = '竖向龙骨，主要受力构件，与预埋件固定。'; break;
+                case 'c1': detail = '横向龙骨，水平支撑，增强稳定性。'; break;
+                case 'c2': detail = '保温层，挤塑板，蓝色，隔热节能。'; break;
+                case 'c3': detail = '石材挂件，不锈钢等金属，连接石材与龙骨。'; break;
 
                 default: detail = layerName;
             }
@@ -529,12 +529,12 @@
                 let colorDesc = '';
                 let funcDesc = '';
                 switch(cfg.name) {
-                    case '基层墙体': colorDesc = '灰色 #6b7c8b'; funcDesc = '结构基底，承重及传力。'; break;
-                    case '预埋件': colorDesc = '金属色 #cccccc'; funcDesc = '与墙体锚固，连接龙骨的金属件。'; break;
-                    case '竖向龙骨': colorDesc = '银色 #9aa9b9'; funcDesc = '垂直主龙骨，调节平整度，承受风荷载。'; break;
-                    case '横向龙骨': colorDesc = '银色 #9aa9b9'; funcDesc = '水平次龙骨，增加整体性。'; break;
-                    case '保温层': colorDesc = '蓝色 #3a7ca5'; funcDesc = '粘贴或锚固于墙体，保温隔热。'; break;
-                    case '石材挂件': colorDesc = '金属色 #b0b0b0'; funcDesc = '可调挂件，固定石材板块。'; break;
+                    case 'a1': colorDesc = '灰色 #6b7c8b'; funcDesc = '结构基底，承重及传力。'; break;
+                    case 'b1': colorDesc = '金属色 #cccccc'; funcDesc = '与墙体锚固，连接龙骨的金属件。'; break;
+                    case 'b2': colorDesc = '银色 #9aa9b9'; funcDesc = '垂直主龙骨，调节平整度，承受风荷载。'; break;
+                    case 'c1': colorDesc = '银色 #9aa9b9'; funcDesc = '水平次龙骨，增加整体性。'; break;
+                    case 'c2': colorDesc = '蓝色 #3a7ca5'; funcDesc = '粘贴或锚固于墙体，保温隔热。'; break;
+                    case 'c3': colorDesc = '金属色 #b0b0b0'; funcDesc = '可调挂件，固定石材板块。'; break;
 
                 }
                 descSpan.innerHTML = `颜色建议：${colorDesc}<br>功能：${funcDesc}`;
