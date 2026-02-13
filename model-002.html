@@ -468,10 +468,9 @@
             { name: 'b1', keyword: 'b1', color: '#cccccc', emissive: '#888888' },
             { name: 'b2', keyword: 'b2', color: '#9aa9b9', emissive: '#5f6f7f' },
             { name: 'c1', keyword: 'c1', color: '#9aa9b9', emissive: '#5f6f7f' },
-            { name: 'c2', keyword: 'c3', color: '#3a7ca5', emissive: '#1e4a6a' },
-            { name: '石材挂件', keyword: '挂件', color: '#b0b0b0', emissive: '#7a7a7a' },
-            { name: '石材面板', keyword: '石材_面板', color: '#c0a080', emissive: '#8b6b4b' },
-            { name: '密封胶', keyword: '密封胶', color: '#505050', emissive: '#303030' }
+            { name: 'c2', keyword: 'c2', color: '#3a7ca5', emissive: '#1e4a6a' },
+            { name: 'c3', keyword: 'c3', color: '#b0b0b0', emissive: '#7a7a7a' },
+      
         ];
         
         // 拆分偏移量（仅用于演示，不干扰原始位置）
@@ -482,8 +481,6 @@
             '横向龙骨': new THREE.Vector3(1.4, 0.6, 0.2),
             '保温层': new THREE.Vector3(0.4, 0.1, -0.9),
             '石材挂件': new THREE.Vector3(1.8, 0.2, 0.6),
-            '石材面板': new THREE.Vector3(2.3, 0.4, 1.0),
-            '密封胶': new THREE.Vector3(2.1, -0.1, 1.5)
         };
         
         // ---------- 7. 工具函数：更新状态栏 ----------
@@ -511,8 +508,7 @@
                 case '横向龙骨': detail = '横向龙骨，水平支撑，增强稳定性。'; break;
                 case '保温层': detail = '保温层，挤塑板，蓝色，隔热节能。'; break;
                 case '石材挂件': detail = '石材挂件，不锈钢等金属，连接石材与龙骨。'; break;
-                case '石材面板': detail = '石材面板，花岗岩质感，装饰面层。'; break;
-                case '密封胶': detail = '密封胶，黑色，填缝防水。'; break;
+
                 default: detail = layerName;
             }
             window.speechSynthesis.cancel(); // 避免重叠
@@ -539,8 +535,7 @@
                     case '横向龙骨': colorDesc = '银色 #9aa9b9'; funcDesc = '水平次龙骨，增加整体性。'; break;
                     case '保温层': colorDesc = '蓝色 #3a7ca5'; funcDesc = '粘贴或锚固于墙体，保温隔热。'; break;
                     case '石材挂件': colorDesc = '金属色 #b0b0b0'; funcDesc = '可调挂件，固定石材板块。'; break;
-                    case '石材面板': colorDesc = '花岗岩色 #c0a080'; funcDesc = '装饰石材，通过挂件安装。'; break;
-                    case '密封胶': colorDesc = '黑色 #505050'; funcDesc = '嵌缝材料，防水密封。'; break;
+
                 }
                 descSpan.innerHTML = `颜色建议：${colorDesc}<br>功能：${funcDesc}`;
             }
